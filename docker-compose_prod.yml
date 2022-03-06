@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: ua_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ua_db
+      MYSQL_USER: ua_user
+      MYSQL_PASSWORD: ''
+      MYSQL_ROOT_PASSWORD: '::9/Bd/CSidlgqKb5;EH_vm['
+    volumes:
+      - ./db-data:/var/lib/mysql
+
+  wordpress:
+    build:
+      dockerfile: ./docker/Dockerfile
+      context: .
+    image: wordpress_app:latest
+    container_name: ua_app
+    restart: always
+    depends_on:
+      - db
+#      - smtp
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: ua_db
+      WORDPRESS_DB_USER: ua_user
+      WORDPRESS_DB_PASSWORD: ''
+      WORDPRESS_CONFIG_EXTRA: "define('FORCE_SSL_ADMIN', true);"
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+      - wp:/var/www/html
+
+  nginx:
+    image: nginx:1.18-alpine
+    container_name: ua_nginx
+    restart: always
+    ports:
+      - '8082:80'
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - wp:/var/www/html:ro
+    volumes_from:
+      - wordpress
+    depends_on:
+      - wordpress
+
+#  smtp:
+#    image: mwader/postfix-relay
+#    container_name: ua_smtp
+#    restart: always
+#    environment:
+#      POSTFIX_myhostname: cap-coding.com
+#      OPENDKIM_DOMAINS: cap-coding.com
+#    volumes:
+#      - dkim-data:/etc/opendkim/keys
+
+volumes:
+  wp:
+  dkim-data:

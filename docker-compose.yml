@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: ua_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ua_db_dev
+      MYSQL_USER: ua_user
+      MYSQL_PASSWORD: 'random_pass'
+      MYSQL_ROOT_PASSWORD: 'random_admin_pass'
+    volumes:
+      - db:/var/lib/mysql
+    ports:
+      - '3306:3306'
+
+  wordpress:
+    image: wordpress:5.9-php7.4-fpm-alpine
+    container_name: ua_app
+    restart: always
+    depends_on:
+      - db
+#      - smtp
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: ua_db_dev
+      WORDPRESS_DB_USER: ua_user
+      WORDPRESS_DB_PASSWORD: 'random_pass'
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+      - wp:/var/www/html
+
+  nginx:
+    image: nginx:1.18-alpine
+    container_name: ua_nginx
+    restart: always
+    ports:
+      - '8080:80'
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - wp:/var/www/html:ro
+    volumes_from:
+      - wordpress
+    depends_on:
+      - wordpress
+
+#  smtp:
+#    image: mwader/postfix-relay
+#    restart: always
+#    environment:
+#       POSTFIX_myhostname: ua-education.com
+#       OPENDKIM_DOMAINS: ua-education.com
+#    volumes:
+#      - dkim-data:/etc/opendkim/keys
+
+volumes:
+  wp:
+  db:
+  dkim-data:
